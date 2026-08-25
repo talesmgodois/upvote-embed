@@ -426,6 +426,7 @@ textarea:focus {
 
 .item-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   padding: 16px;
   background: var(--bg-secondary);
@@ -457,8 +458,8 @@ textarea:focus {
 }
 
 .item-body {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 160px;
+  min-width: 160px;
 }
 
 .item-body h4 {
