@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catalogue</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="/js/theme.js"></script>
+    <style>
+      body {
+        padding: 16px;
+      }
+      .embed-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .embed-header h1 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .embed-header p {
+        font-size: 12.5px;
+        color: var(--fg-secondary);
+        margin-top: 3px;
+      }
+      .item-row {
+        padding: 12px;
+      }
+      .item-thumb {
+        width: 48px;
+        height: 48px;
+      }
+      .item-body h4 {
+        font-size: 13.5px;
+      }
+      .item-body p {
+        font-size: 12.5px;
+      }
+      .vote-btn {
+        width: 40px;
+        height: 38px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" class="center-loading"><div class="spinner"></div></div>
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/voter.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/vote-widget.js"></script>
+    <script>
+      (async function () {
+        const root = document.getElementById("root");
+        const id = location.pathname.split("/").filter(Boolean).pop();
+
+        function escapeHtml(str) {
+          return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[c]);
+        }
+
+        try {
+          const { catalogue, items } = await window.UpvoteAPI.publicCatalogue(id);
+
+          root.innerHTML = `
+            <div class="embed-header">
+              <div>
+                <h1>${escapeHtml(catalogue.name)}</h1>
+                <p>${escapeHtml(catalogue.description || "")}</p>
+              </div>
+              <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme" type="button"></button>
+            </div>
+            <div id="items"></div>
+            <div class="footer-note"><a class="embed-footer-link" href="/embed/catalogue/${id}" target="_blank" rel="noopener">Powered by upvote-embed</a></div>
+          `;
+
+          const themeBtn = document.getElementById("theme-btn");
+          const sun = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+          const moon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
+          const paint = () => (themeBtn.innerHTML = window.UpvoteTheme.current() === "dark" ? sun : moon);
+          paint();
+          themeBtn.addEventListener("click", () => {
+            window.UpvoteTheme.toggle();
+            paint();
+          });
+
+          const itemsEl = document.getElementById("items");
+          if (items.length === 0) {
+            itemsEl.innerHTML = `<div class="empty-state">No items yet.</div>`;
+          } else {
+            items.forEach((item) => {
+              const row = document.createElement("div");
+              row.className = "item-row";
+              const thumb = item.image_url
+                ? `<img class="item-thumb" src="${escapeHtml(item.image_url)}" alt="" onerror="this.style.visibility='hidden'" />`
+                : `<div class="item-thumb empty">no img</div>`;
+              row.innerHTML = `
+                ${thumb}
+                <div class="item-body">
+                  <h4>${escapeHtml(item.title)}</h4>
+                  <p>${escapeHtml(item.description || "")}</p>
+                </div>
+                <div data-role="vote-slot"></div>
+              `;
+              itemsEl.appendChild(row);
+              row.querySelector('[data-role="vote-slot"]').appendChild(window.UpvoteVoteWidget.create(item));
+            });
+          }
+        } catch (err) {
+          root.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+        }
+      })();
+    </script>
+  </body>
+</html>
